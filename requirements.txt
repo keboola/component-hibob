@@ -1,5 +1,7 @@
-keboola.component==1.4.2
+keboola.component
 keboola.utils
 keboola.http-client
+keboola.csvwriter
 mock
 freezegun
+dataconf

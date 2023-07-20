@@ -2,22 +2,24 @@
 Template Component main class.
 
 """
-import csv
+from keboola.csvwriter import ElasticDictWriter
 import logging
+
 
 from datetime import datetime
 
 from keboola.component.base import ComponentBase
 from keboola.component.exceptions import UserException
 
+from configuration import Configuration, Account
+from client.client import HiBobClient
+
 # configuration variables
 KEY_API_TOKEN = '#api_token'
-KEY_PRINT_HELLO = 'print_hello'
 
 # list of mandatory parameters => if some is missing,
 # component will fail with readable message on initialization.
-REQUIRED_PARAMETERS = [KEY_PRINT_HELLO]
-REQUIRED_IMAGE_PARS = []
+REQUIRED_PARAMETERS = [KEY_API_TOKEN]
 
 
 class Component(ComponentBase):
@@ -33,45 +35,66 @@ class Component(ComponentBase):
 
     def __init__(self):
         super().__init__()
+        self._configuration: Configuration
 
     def run(self):
         """
         Main execution code
         """
 
-        # ####### EXAMPLE TO REMOVE
-        # check for missing configuration parameters
-        self.validate_configuration_parameters(REQUIRED_PARAMETERS)
-        self.validate_image_parameters(REQUIRED_IMAGE_PARS)
-        params = self.configuration.parameters
-        # Access parameters in data/config.json
-        if params.get(KEY_PRINT_HELLO):
-            logging.info("Hello World")
+        self._init_configuration()
 
-        # get last state data/in/state.json from previous run
-        previous_state = self.get_state_file()
-        logging.info(previous_state.get('some_state_parameter'))
+        service_user_id = self._configuration.account.service_user_id
+        service_user_token = self._configuration.account.pswd_service_user_token
 
-        # Create output table (Tabledefinition - just metadata)
-        table = self.create_out_table_definition('output.csv', incremental=True, primary_key=['timestamp'])
+        client = HiBobClient(service_user_id, service_user_token)
 
-        # get file path of the table (data/out/tables/Features.csv)
-        out_table_path = table.full_path
-        logging.info(out_table_path)
+        employee_ids = self.get_employees(client)
 
-        # DO whatever and save into out_table_path
-        with open(table.full_path, mode='wt', encoding='utf-8', newline='') as out_file:
-            writer = csv.DictWriter(out_file, fieldnames=['timestamp'])
-            writer.writeheader()
-            writer.writerow({"timestamp": datetime.now().isoformat()})
+        table = self.create_out_table_definition('employment_history.csv', incremental=True, primary_key=[])
+        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
+            wr.writeheader()
+            for employee_id in employee_ids:
+                employment_history = client.get_employment_history(employee_id)
+                wr.writerow(self.flatten_dictionary(employment_history))
 
-        # Save table manifest (output.csv.manifest) from the tabledefinition
+    def get_employees(self, client) -> list:
+
+        table = self.create_out_table_definition('employees.csv', incremental=True, primary_key=['id'])
+        employee_ids = []
+        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
+            wr.writeheader()
+            for employee in client.get_all_employees():
+                wr.writerow(self.flatten_dictionary(employee))
+
+                if employee.get("id"):
+                    employee_ids.append(employee.get("id"))
+
         self.write_manifest(table)
+        return employee_ids
 
-        # Write new state - will be available next run
-        self.write_state_file({"some_state_parameter": "value"})
+    def get_employment_history(self, employee_id):
+        pass
 
-        # ####### EXAMPLE TO REMOVE END
+    def _init_configuration(self) -> None:
+        self.validate_configuration_parameters(Configuration.get_dataclass_required_parameters())
+        self._configuration: Configuration = Configuration.load_from_dict(self.configuration.parameters)
+
+    @staticmethod
+    def flatten_dictionary(nested_dict, sep='_'):
+        def _flatten(d, parent_key='', result=None):
+            if result is None:
+                result = {}
+
+            for key, value in d.items():
+                new_key = f"{parent_key}{sep}{key}" if parent_key else key
+                if isinstance(value, dict):
+                    _flatten(value, new_key, result)
+                else:
+                    result[new_key] = value
+            return result
+
+        return _flatten(nested_dict)
 
 
 """
