@@ -13,18 +13,20 @@
       "properties": {
         "service_user_id": {
           "title": "Service User ID",
-          "type": "string"
+          "type": "string",
+          "propertyOrder": 1
         },
         "#service_user_token": {
           "title": "Service User Token",
           "type": "string",
-          "format": "password"
+          "format": "password",
+          "propertyOrder": 2
         }
       }
     },
     "source": {
       "type": "object",
-      "title": "Account configuration",
+      "title": "Source configuration",
       "propertyOrder": 2,
       "properties": {
         "endpoints": {
