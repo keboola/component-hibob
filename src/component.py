@@ -54,7 +54,7 @@ class Component(ComponentBase):
     def get_employees(self) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
         a list of employee_ids."""
-        table = self.create_out_table_definition('employees.csv', incremental=True, primary_key=['id'])
+        table = self.create_out_table_definition('employees.csv', incremental=False, primary_key=['id'])
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
@@ -70,7 +70,7 @@ class Component(ComponentBase):
     def get_employment_history(self, employee_ids):
         logging.info("Retrieving employment history.")
 
-        table = self.create_out_table_definition('employment_history.csv', incremental=True, primary_key=[])
+        table = self.create_out_table_definition('employment_history.csv', incremental=False, primary_key=[])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee_id in employee_ids:
@@ -82,7 +82,7 @@ class Component(ComponentBase):
     def get_employee_lifecycle(self, employee_ids):
         logging.info("Retrieving employee lifecycle.")
 
-        table = self.create_out_table_definition('employee_lifecycle.csv', incremental=True, primary_key=[])
+        table = self.create_out_table_definition('employee_lifecycle.csv', incremental=False, primary_key=[])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee_id in employee_ids:
@@ -94,7 +94,7 @@ class Component(ComponentBase):
     def get_employee_work_history(self, employee_ids):
         logging.info("Retrieving employee work history.")
 
-        table = self.create_out_table_definition('employee_work_history.csv', incremental=True, primary_key=[])
+        table = self.create_out_table_definition('employee_work_history.csv', incremental=False, primary_key=[])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee_id in employee_ids:
