@@ -38,19 +38,14 @@ class HiBobClient(HttpClient):
                 yield employee
 
     def get_employment_history(self, employee_id: str) -> dict:
-        logging.info("Retrieving epmloyment history.")
         r = self.get(f"people/{employee_id}/employment")
 
         return r.get("values")
 
     def get_employee_lifecycle(self, employee_id: str) -> dict:
-        logging.info("Retrieving employee lifecycle.")
-
         r = self.get(f"people/{employee_id}/lifecycle")
         return r.get("values")
 
     def get_employee_work_history(self, employee_id: str) -> dict:
-        logging.info("Retrieving employee work history.")
-
         r = self.get(f"people/{employee_id}/work")
         return r.get("values")

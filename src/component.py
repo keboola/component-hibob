@@ -68,6 +68,8 @@ class Component(ComponentBase):
         return employee_ids
 
     def get_employment_history(self, employee_ids):
+        logging.info("Retrieving employment history.")
+
         table = self.create_out_table_definition('employment_history.csv', incremental=True, primary_key=[])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
@@ -78,6 +80,8 @@ class Component(ComponentBase):
         self.write_manifest(table)
 
     def get_employee_lifecycle(self, employee_ids):
+        logging.info("Retrieving employee lifecycle.")
+
         table = self.create_out_table_definition('employee_lifecycle.csv', incremental=True, primary_key=[])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
@@ -88,6 +92,8 @@ class Component(ComponentBase):
         self.write_manifest(table)
 
     def get_employee_work_history(self, employee_ids):
+        logging.info("Retrieving employee work history.")
+
         table = self.create_out_table_definition('employee_work_history.csv', incremental=True, primary_key=[])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
