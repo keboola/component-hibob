@@ -5,21 +5,14 @@ Template Component main class.
 from keboola.csvwriter import ElasticDictWriter
 import logging
 
-
-from datetime import datetime
-
 from keboola.component.base import ComponentBase
 from keboola.component.exceptions import UserException
 
-from configuration import Configuration, Account
+from configuration import Configuration
 from client.client import HiBobClient
 
-# configuration variables
-KEY_API_TOKEN = '#api_token'
 
-# list of mandatory parameters => if some is missing,
-# component will fail with readable message on initialization.
-REQUIRED_PARAMETERS = [KEY_API_TOKEN]
+SUPPORTED_ENDPOINTS = ['employment_history', 'employee_lifecycle', 'employee_work_history']
 
 
 class Component(ComponentBase):
@@ -35,6 +28,7 @@ class Component(ComponentBase):
 
     def __init__(self):
         super().__init__()
+        self.client = None
         self._configuration: Configuration
 
     def run(self):
@@ -47,24 +41,24 @@ class Component(ComponentBase):
         service_user_id = self._configuration.account.service_user_id
         service_user_token = self._configuration.account.pswd_service_user_token
 
-        client = HiBobClient(service_user_id, service_user_token)
+        self.client = HiBobClient(service_user_id, service_user_token)
 
-        employee_ids = self.get_employees(client)
+        employee_ids = self.get_employees()
 
-        table = self.create_out_table_definition('employment_history.csv', incremental=True, primary_key=[])
-        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
-            wr.writeheader()
-            for employee_id in employee_ids:
-                employment_history = client.get_employment_history(employee_id)
-                wr.writerow(self.flatten_dictionary(employment_history))
+        for endpoint in self._configuration.source.endpoints:
+            if endpoint in SUPPORTED_ENDPOINTS:
+                getattr(self, "get_"+endpoint)(employee_ids)
+            else:
+                raise UserException(f"Unsupported endpoint: {endpoint}.")
 
-    def get_employees(self, client) -> list:
-
+    def get_employees(self) -> list:
+        """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
+        a list of employee_ids."""
         table = self.create_out_table_definition('employees.csv', incremental=True, primary_key=['id'])
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
-            for employee in client.get_all_employees():
+            for employee in self.client.get_employees():
                 wr.writerow(self.flatten_dictionary(employee))
 
                 if employee.get("id"):
@@ -73,8 +67,35 @@ class Component(ComponentBase):
         self.write_manifest(table)
         return employee_ids
 
-    def get_employment_history(self, employee_id):
-        pass
+    def get_employment_history(self, employee_ids):
+        table = self.create_out_table_definition('employment_history.csv', incremental=True, primary_key=[])
+        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
+            wr.writeheader()
+            for employee_id in employee_ids:
+                result = self.client.get_employment_history(employee_id)
+                for record in result:
+                    wr.writerow(self.flatten_dictionary(record))
+        self.write_manifest(table)
+
+    def get_employee_lifecycle(self, employee_ids):
+        table = self.create_out_table_definition('employee_lifecycle.csv', incremental=True, primary_key=[])
+        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
+            wr.writeheader()
+            for employee_id in employee_ids:
+                result = self.client.get_employee_lifecycle(employee_id)
+                for record in result:
+                    wr.writerow(self.flatten_dictionary(record))
+        self.write_manifest(table)
+
+    def get_employee_work_history(self, employee_ids):
+        table = self.create_out_table_definition('employee_work_history.csv', incremental=True, primary_key=[])
+        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
+            wr.writeheader()
+            for employee_id in employee_ids:
+                result = self.client.get_employee_work_history(employee_id)
+                for record in result:
+                    wr.writerow(self.flatten_dictionary(record))
+        self.write_manifest(table)
 
     def _init_configuration(self) -> None:
         self.validate_configuration_parameters(Configuration.get_dataclass_required_parameters())

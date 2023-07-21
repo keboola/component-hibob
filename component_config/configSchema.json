@@ -2,18 +2,46 @@
   "type": "object",
   "title": "extractor configuration",
   "required": [
-    "print_hello"
+    "account",
+    "source"
   ],
   "properties": {
-    "print_hello": {
-      "type": "boolean",
-      "title": "Print Hello",
-      "propertyOrder": 1
+    "account": {
+      "type": "object",
+      "title": "Account configuration",
+      "propertyOrder": 1,
+      "properties": {
+        "service_user_id": {
+          "title": "Service User ID",
+          "type": "string"
+        },
+        "#service_user_token": {
+          "title": "Service User Token",
+          "type": "string",
+          "format": "password"
+        }
+      }
     },
-    "debug": {
-      "type": "boolean",
-      "title": "Debug",
-      "propertyOrder": 2
+    "source": {
+      "type": "object",
+      "title": "Account configuration",
+      "propertyOrder": 2,
+      "properties": {
+        "endpoints": {
+          "type": "array",
+          "title": "Endpoints",
+          "format": "select",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "employment_history",
+              "employee_lifecycle",
+              "employee_work_history"
+            ]
+          }
+        }
+      }
     }
   }
 }

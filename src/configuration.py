@@ -1,8 +1,7 @@
 import dataclasses
 import json
 from dataclasses import dataclass
-from typing import List, Optional
-
+from typing import List
 import dataconf
 
 
@@ -52,18 +51,12 @@ class Account(ConfigurationBase):
 
 
 @dataclass
-class Settings(ConfigurationBase):
-    file_path: str
-    new_files_only: bool = False
-
-
-@dataclass
-class Destination(ConfigurationBase):
-    custom_tag: str = ""
-    permanent_files: bool = False
+class Source(ConfigurationBase):
+    endpoints: list[str]
 
 
 @dataclass
 class Configuration(ConfigurationBase):
     account: Account
+    source: Source
 
