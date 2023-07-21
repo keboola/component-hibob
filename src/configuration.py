@@ -59,4 +59,3 @@ class Source(ConfigurationBase):
 class Configuration(ConfigurationBase):
     account: Account
     source: Source
-
