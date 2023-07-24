@@ -135,7 +135,7 @@ class Component(ComponentBase):
         if client.test_connection():
             return None
         else:
-            raise UserException(f"Test connection failed.")
+            raise UserException("Test connection failed.")
 
 
 """
