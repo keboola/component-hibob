@@ -45,7 +45,7 @@ class ConfigurationBase:
 
 
 @dataclass
-class Account(ConfigurationBase):
+class Authorization(ConfigurationBase):
     service_user_id: str
     pswd_service_user_token: str
 
@@ -56,6 +56,11 @@ class Source(ConfigurationBase):
 
 
 @dataclass
+class Destination(ConfigurationBase):
+    load_type: list[str]
+
+
+@dataclass
 class Configuration(ConfigurationBase):
-    account: Account
+    authorization: Authorization
     source: Source

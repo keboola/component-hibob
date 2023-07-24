@@ -6,27 +6,34 @@
     "source"
   ],
   "properties": {
-    "account": {
+    "authorization": {
       "type": "object",
-      "title": "Account configuration",
+      "title": "Authorization",
       "propertyOrder": 1,
       "properties": {
         "service_user_id": {
           "title": "Service User ID",
           "type": "string",
+          "description": "Your Service User ID that will be used to authorize the component.",
           "propertyOrder": 1
         },
         "#service_user_token": {
           "title": "Service User Token",
           "type": "string",
           "format": "password",
+          "description": "Your Service User Token that will be used to authorize the component.",
           "propertyOrder": 2
         }
-      }
+      },
+      "test_connection": {
+      "type": "button",
+      "format": "test-connection",
+      "propertyOrder": 60
+    }
     },
     "source": {
       "type": "object",
-      "title": "Source configuration",
+      "title": "Endpoint configuration",
       "propertyOrder": 2,
       "properties": {
         "endpoints": {
@@ -42,6 +49,31 @@
               "employee_work_history"
             ]
           }
+        }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "title": "Destination",
+      "propertyOrder": 2,
+      "properties": {
+        "load_type": {
+          "type": "string",
+          "enum": [
+            "full_load",
+            "incremental_load"
+          ],
+          "options": {
+            "enum_titles": [
+              "Full Load",
+              "Incremental Load"
+            ]
+          },
+          "default": "full_load",
+          "format": "checkbox",
+          "title": "Load Type",
+          "description": "If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table.",
+          "propertyOrder": 20
         }
       }
     }
