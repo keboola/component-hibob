@@ -53,11 +53,11 @@ class HiBobClient(HttpClient):
 
     def get_employee_lifecycle(self, employee_id: str) -> dict:
         endpoint = f"people/{employee_id}/lifecycle"
-        return self._get(endpoint)
+        return self._get(endpoint).get("values")
 
     def get_employee_work_history(self, employee_id: str) -> dict:
         endpoint = f"people/{employee_id}/work"
-        return self._get(endpoint)
+        return self._get(endpoint).get("values")
 
     def _get(self, endpoint) -> dict:
         try:
