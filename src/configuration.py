@@ -51,11 +51,6 @@ class Authorization(ConfigurationBase):
 
 
 @dataclass
-class Source(ConfigurationBase):
-    endpoints: list[str]
-
-
-@dataclass
 class Destination(ConfigurationBase):
     load_type: list[str]
 
@@ -63,4 +58,5 @@ class Destination(ConfigurationBase):
 @dataclass
 class Configuration(ConfigurationBase):
     authorization: Authorization
-    source: Source
+    endpoints: list[str]
+    destination: Destination

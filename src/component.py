@@ -28,6 +28,7 @@ class Component(ComponentBase):
 
     def __init__(self):
         super().__init__()
+        self.incremental = None
         self.client = None
         self._configuration: Configuration
 
@@ -41,11 +42,17 @@ class Component(ComponentBase):
         service_user_id = self._configuration.authorization.service_user_id
         service_user_token = self._configuration.authorization.pswd_service_user_token
 
+        load_type = self._configuration.destination.load_type
+        if load_type == "incremental_load":
+            self.incremental = True
+        else:
+            self.incremental = False
+
         self.client = HiBobClient(service_user_id, service_user_token)
 
         employee_ids = self.get_employees()
 
-        for endpoint in self._configuration.source.endpoints:
+        for endpoint in self._configuration.endpoints:
             if endpoint in SUPPORTED_ENDPOINTS:
                 getattr(self, "get_"+endpoint)(employee_ids)
             else:
@@ -54,7 +61,7 @@ class Component(ComponentBase):
     def get_employees(self) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
         a list of employee_ids."""
-        table = self.create_out_table_definition('employees.csv', incremental=False, primary_key=['id'])
+        table = self.create_out_table_definition('employees.csv', incremental=self.incremental, primary_key=['id'])
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
@@ -70,7 +77,8 @@ class Component(ComponentBase):
     def get_employment_history(self, employee_ids):
         logging.info("Retrieving employment history.")
 
-        table = self.create_out_table_definition('employment_history.csv', incremental=False, primary_key=['id'])
+        table = self.create_out_table_definition('employment_history.csv', incremental=self.incremental,
+                                                 primary_key=['id'])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee_id in employee_ids:
@@ -82,7 +90,8 @@ class Component(ComponentBase):
     def get_employee_lifecycle(self, employee_ids):
         logging.info("Retrieving employee lifecycle.")
 
-        table = self.create_out_table_definition('employee_lifecycle.csv', incremental=False, primary_key=['id'])
+        table = self.create_out_table_definition('employee_lifecycle.csv', incremental=self.incremental,
+                                                 primary_key=['id'])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee_id in employee_ids:
@@ -94,7 +103,8 @@ class Component(ComponentBase):
     def get_employee_work_history(self, employee_ids):
         logging.info("Retrieving employee work history.")
 
-        table = self.create_out_table_definition('employee_work_history.csv', incremental=False, primary_key=['id'])
+        table = self.create_out_table_definition('employee_work_history.csv', incremental=self.incremental,
+                                                 primary_key=['id'])
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee_id in employee_ids:
