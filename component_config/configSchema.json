@@ -2,8 +2,8 @@
   "type": "object",
   "title": "extractor configuration",
   "required": [
-    "account",
-    "source"
+    "authorization",
+    "destination"
   ],
   "properties": {
     "authorization": {
@@ -26,36 +26,30 @@
         }
       },
       "test_connection": {
-      "type": "button",
-      "format": "test-connection",
-      "propertyOrder": 60
-    }
-    },
-    "source": {
-      "type": "object",
-      "title": "Endpoint configuration",
-      "propertyOrder": 2,
-      "properties": {
-        "endpoints": {
-          "type": "array",
-          "title": "Endpoints",
-          "format": "select",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "enum": [
-              "employment_history",
-              "employee_lifecycle",
-              "employee_work_history"
-            ]
-          }
-        }
+        "type": "button",
+        "format": "test-connection",
+        "propertyOrder": 60
       }
+    },
+    "endpoints": {
+      "type": "array",
+      "title": "Endpoints",
+      "format": "select",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "employment_history",
+          "employee_lifecycle",
+          "employee_work_history"
+        ]
+      },
+      "propertyOrder": 2
     },
     "destination": {
       "type": "object",
       "title": "Destination",
-      "propertyOrder": 2,
+      "propertyOrder": 3,
       "properties": {
         "load_type": {
           "type": "string",
