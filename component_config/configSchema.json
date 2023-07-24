@@ -24,16 +24,16 @@
           "description": "Your Service User Token that will be used to authorize the component.",
           "propertyOrder": 2
         }
-      },
-      "test_connection": {
-        "type": "button",
-        "format": "sync-action",
-        "propertyOrder": 3,
-        "options": {
-          "async": {
-            "label": "TEST CONNECTION",
-            "action": "testConnection"
-          }
+      }
+    },
+    "test_connection": {
+      "type": "button",
+      "format": "sync-action",
+      "propertyOrder": 2,
+      "options": {
+        "async": {
+          "label": "TEST CONNECTION",
+          "action": "validate_connection"
         }
       }
     },
