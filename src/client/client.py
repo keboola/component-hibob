@@ -30,9 +30,10 @@ class HiBobClient(HttpClient):
     def test_connection(self):
         """Returns True if people endpoint is reachable with entered credentials."""
         try:
-            _ = self.get("people")
+            r = self.get_raw("/my/avatar")
+            r.raise_for_status()
             return True
-        except HiBobException:
+        except requests.HTTPError:
             return False
 
     def get_employees(self):
