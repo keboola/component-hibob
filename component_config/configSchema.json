@@ -23,20 +23,19 @@
           "format": "password",
           "description": "Your Service User Token that will be used to authorize the component.",
           "propertyOrder": 2
-        }
-      }
-    },
-    "test_connection": {
+        },
+      "test_connection": {
       "type": "button",
       "format": "sync-action",
-      "propertyOrder": 2,
+      "propertyOrder": 3,
       "options": {
         "async": {
           "label": "TEST CONNECTION",
           "action": "testConnection"
         }
       }
-    },
+    }
+    }},
     "endpoints": {
       "type": "array",
       "title": "Endpoints",
@@ -50,7 +49,7 @@
           "employee_work_history"
         ]
       },
-      "propertyOrder": 3
+      "propertyOrder": 2
     },
     "destination": {
       "type": "object",
@@ -74,7 +73,7 @@
           "description": "If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table."
         }
       },
-      "propertyOrder": 4
+      "propertyOrder": 3
     }
   }
 }
