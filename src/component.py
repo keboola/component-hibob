@@ -123,7 +123,7 @@ class Component(ComponentBase):
         Flatten a nested dictionary by combining nested keys using the specified separator.
 
         This function takes a nested dictionary as input and flattens it by combining keys using specified separator.
-        If a key is longer than 64 characters, it will be truncated to ensure that the created keys are of max length 64
+        If a key is longer than 64 characters, it will be truncated to ensure that created keys are of max length 64.
         Any forward slashes in the keys will be replaced with underscores, and keys will not start with an underscore.
 
         Parameters:
