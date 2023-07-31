@@ -119,16 +119,41 @@ class Component(ComponentBase):
 
     @staticmethod
     def flatten_dictionary(nested_dict, sep='_'):
+        """
+        Flatten a nested dictionary by combining nested keys using the specified separator.
+
+        This function takes a nested dictionary as input and flattens it by combining keys using specified separator.
+        If a key is longer than 64 characters, it will be truncated to ensure that the created keys are of max length 64
+        Any forward slashes in the keys will be replaced with underscores, and keys will not start with an underscore.
+
+        Parameters:
+            nested_dict (dict): The nested dictionary to be flattened.
+            sep (str, optional): The separator to use for combining keys. Defaults to '_'.
+
+        Returns:
+            dict: A new dictionary with flattened keys.
+        """
+
         def _flatten(d, parent_key='', result=None):
             if result is None:
                 result = {}
 
             for key, value in d.items():
                 new_key = f"{parent_key}{sep}{key}" if parent_key else key
+                # Replace forward slash with underscore in the key
+                new_key = new_key.replace("/", "_")
+
+                # Remove the starting underscore from the key, if present
+                if new_key.startswith(sep):
+                    new_key = new_key[len(sep):]
+
                 if isinstance(value, dict):
                     _flatten(value, new_key, result)
                 else:
-                    result[new_key] = value
+                    # Truncate the key to a maximum length of 64 characters
+                    max_key_length = 64
+                    truncated_key = new_key[:max_key_length]
+                    result[truncated_key] = value
             return result
 
         return _flatten(nested_dict)

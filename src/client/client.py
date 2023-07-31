@@ -29,8 +29,11 @@ class HiBobClient(HttpClient):
 
     def test_connection(self):
         """Returns True if people endpoint is reachable with entered credentials."""
+        params = {
+            "showInactive": True
+        }
         try:
-            r = self.get_raw("people")
+            r = self.post_raw("people/search", json=params)
             r.raise_for_status()
             return True
         except requests.HTTPError:
@@ -40,15 +43,11 @@ class HiBobClient(HttpClient):
         """This will be deprecated in Q4 2023"""
         logging.info("Retrieving employees.")
 
-        headers = {
-            "accept": "application/json",
-        }
-
         params = {
             "showInactive": True
         }
 
-        r = self.post("people/search", json=params, headers=headers)
+        r = self.post("people/search", json=params)
 
         employees = r.get("employees")
 
