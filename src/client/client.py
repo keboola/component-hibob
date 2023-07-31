@@ -20,7 +20,7 @@ class HiBobClient(HttpClient):
             "accept": "application/json"
         }
         super().__init__(base_url=self.base_url, default_http_header=default_header,
-                         status_forcelist=(429, 500, 502, 503, 504))
+                         status_forcelist=(429, 500, 502, 503, 504), max_retries=10)
 
     @staticmethod
     def make_base64_credentials(service_user_id, service_user_token) -> str:
@@ -39,7 +39,16 @@ class HiBobClient(HttpClient):
     def get_employees(self):
         """This will be deprecated in Q4 2023"""
         logging.info("Retrieving employees.")
-        r = self._get("people")
+
+        headers = {
+            "accept": "application/json",
+        }
+
+        params = {
+            "showInactive": True
+        }
+
+        r = self.post("people/search", json=params, headers=headers)
 
         employees = r.get("employees")
 

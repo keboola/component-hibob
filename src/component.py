@@ -135,6 +135,7 @@ class Component(ComponentBase):
 
     @sync_action("testConnection")
     def test_connection(self):
+        """Currently not used, since it takes too long to fetch all employees."""
         self._init_configuration()
 
         service_user_id = self._configuration.authorization.service_user_id
