@@ -31,6 +31,7 @@ class Component(ComponentBase):
         self.incremental = None
         self.client = None
         self._configuration: Configuration
+        self.state = {}
 
     def run(self):
         """
@@ -67,7 +68,7 @@ class Component(ComponentBase):
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
-            for employee in self.client.get_employees():
+            for employee in self.client.get_employees(human_readable=human_readable):
                 wr.writerow(self.flatten_dictionary(employee))
 
                 if employee.get("id"):
