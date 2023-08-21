@@ -47,7 +47,7 @@ class HiBobClient(HttpClient):
 
         if human_readable:
             params["humanReadable"] = "REPLACE"
-            logging.info("Component will fetch only human readable values.")
+            logging.info("Component will fetch only human readable values for employees table.")
 
         r = self.post("people/search", json=params)
 
