@@ -175,7 +175,7 @@ class Component(ComponentBase):
         columns = list(row.keys())
 
         for column in columns:
-            if column not in self.state:
+            if column not in self.state[table_name]:
                 self.state[table_name].append(column)
                 logging.info(f"Adding new column {column} to statefile.")
 
