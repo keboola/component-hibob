@@ -95,7 +95,9 @@ class Component(ComponentBase):
             for employee_id in employee_ids:
                 result = self.client.get_employment_history(employee_id)
                 for record in result:
-                    wr.writerow(self.flatten_dictionary(record))
+                    row = self.flatten_dictionary(record)
+                    self.add_col_to_state("employment_history", row)
+                    wr.writerow(row)
         self.write_manifest(table)
 
     def get_employee_lifecycle(self, employee_ids):
@@ -108,7 +110,9 @@ class Component(ComponentBase):
             for employee_id in employee_ids:
                 result = self.client.get_employee_lifecycle(employee_id)
                 for record in result:
-                    wr.writerow(self.flatten_dictionary(record))
+                    row = self.flatten_dictionary(record)
+                    self.add_col_to_state("employee_lifecycle", row)
+                    wr.writerow(row)
         self.write_manifest(table)
 
     def get_employee_work_history(self, employee_ids):
@@ -121,7 +125,9 @@ class Component(ComponentBase):
             for employee_id in employee_ids:
                 result = self.client.get_employee_work_history(employee_id)
                 for record in result:
-                    wr.writerow(self.flatten_dictionary(record))
+                    row = self.flatten_dictionary(record)
+                    self.add_col_to_state("employee_work_history", row)
+                    wr.writerow(row)
         self.write_manifest(table)
 
     def _init_configuration(self) -> None:
