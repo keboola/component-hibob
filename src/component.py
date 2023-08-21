@@ -39,6 +39,7 @@ class Component(ComponentBase):
         """
 
         self._init_configuration()
+        self.state = self.get_state_file()
 
         service_user_id = self._configuration.authorization.service_user_id
         service_user_token = self._configuration.authorization.pswd_service_user_token
@@ -61,6 +62,8 @@ class Component(ComponentBase):
             else:
                 raise UserException(f"Unsupported endpoint: {endpoint}.")
 
+        self.write_state_file(self.state)
+
     def get_employees(self, human_readable: bool) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
         a list of employee_ids."""
@@ -69,7 +72,11 @@ class Component(ComponentBase):
         with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
             for employee in self.client.get_employees(human_readable=human_readable):
-                wr.writerow(self.flatten_dictionary(employee))
+                row = self.flatten_dictionary(employee)
+
+                self.add_col_to_state("employees", row)
+
+                wr.writerow(row)
 
                 if employee.get("id"):
                     employee_ids.append(employee.get("id"))
@@ -160,6 +167,16 @@ class Component(ComponentBase):
             return result
 
         return _flatten(nested_dict)
+
+    def add_col_to_state(self, table_name: str, row: dict):
+        if table_name not in self.state:
+            self.state[table_name] = []
+        columns = list(row.keys())
+
+        for column in columns:
+            if column not in self.state:
+                self.state[table_name].append(column)
+                logging.info(f"Adding new column {column} to statefile.")
 
     @sync_action("testConnection")
     def test_connection(self):
