@@ -23,7 +23,18 @@
           "format": "password",
           "description": "Your Service User Token that will be used to authorize the component.",
           "propertyOrder": 2
+        },
+        "test_connection": {
+      "type": "button",
+      "format": "sync-action",
+      "propertyOrder": 3,
+      "options": {
+        "async": {
+          "label": "TEST CONNECTION",
+          "action": "testConnection"
         }
+      }
+    }
     }},
     "endpoints": {
       "type": "array",
