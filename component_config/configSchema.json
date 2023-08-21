@@ -40,6 +40,12 @@
       },
       "propertyOrder": 2
     },
+    "human_readable": {
+      "type": "boolean",
+      "title": "Human readable",
+      "description": "Select this option if you want to fetch human readable values only. This option only affects employees table.",
+      "propertyOrder": 3
+    },
     "destination": {
       "type": "object",
       "title": "Destination",
@@ -62,7 +68,7 @@
           "description": "If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table."
         }
       },
-      "propertyOrder": 3
+      "propertyOrder": 4
     }
   }
 }

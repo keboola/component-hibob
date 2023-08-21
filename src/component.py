@@ -48,9 +48,11 @@ class Component(ComponentBase):
         else:
             self.incremental = False
 
+        human_readable = self._configuration.human_readable
+
         self.client = HiBobClient(service_user_id, service_user_token)
 
-        employee_ids = self.get_employees()
+        employee_ids = self.get_employees(human_readable)
 
         for endpoint in self._configuration.endpoints:
             if endpoint in SUPPORTED_ENDPOINTS:
@@ -58,7 +60,7 @@ class Component(ComponentBase):
             else:
                 raise UserException(f"Unsupported endpoint: {endpoint}.")
 
-    def get_employees(self) -> list:
+    def get_employees(self, human_readable: bool) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
         a list of employee_ids."""
         table = self.create_out_table_definition('employees.csv', incremental=self.incremental, primary_key=['id'])

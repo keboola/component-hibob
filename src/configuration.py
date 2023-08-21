@@ -1,7 +1,7 @@
 import dataclasses
 import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 import dataconf
 
 
@@ -59,4 +59,5 @@ class Destination(ConfigurationBase):
 class Configuration(ConfigurationBase):
     authorization: Authorization
     endpoints: list[str]
+    human_readable: bool
     destination: Destination

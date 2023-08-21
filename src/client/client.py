@@ -29,23 +29,25 @@ class HiBobClient(HttpClient):
 
     def test_connection(self):
         """Returns True if people endpoint is reachable with entered credentials."""
-        params = {
-            "showInactive": True
-        }
+        payload = {"fields": ["About"]}
+
         try:
-            r = self.post_raw("people/search", json=params)
+            r = self.post_raw("people/search", json=payload)
             r.raise_for_status()
             return True
         except requests.HTTPError:
             return False
 
-    def get_employees(self):
-        """This will be deprecated in Q4 2023"""
+    def get_employees(self, human_readable: bool = False):
         logging.info("Retrieving employees.")
 
         params = {
             "showInactive": True
         }
+
+        if human_readable:
+            params["humanReadable"] = "REPLACE"
+            logging.info("Component will fetch only human readable values.")
 
         r = self.post("people/search", json=params)
 
