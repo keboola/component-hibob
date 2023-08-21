@@ -7,6 +7,7 @@ import logging
 
 from keboola.component.base import ComponentBase, sync_action
 from keboola.component.exceptions import UserException
+from keboola.component.sync_actions import ValidationResult, MessageType
 
 from configuration import Configuration
 from client.client import HiBobClient
@@ -189,7 +190,7 @@ class Component(ComponentBase):
         client = HiBobClient(service_user_id, service_user_token)
 
         if client.test_connection():
-            return None
+            ValidationResult("Query returned no results", MessageType.SUCCESS)
         else:
             raise UserException("Test connection failed.")
 
