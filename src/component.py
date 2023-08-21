@@ -190,7 +190,7 @@ class Component(ComponentBase):
         client = HiBobClient(service_user_id, service_user_token)
 
         if client.test_connection():
-            ValidationResult("Query returned no results", MessageType.SUCCESS)
+            ValidationResult("HiBob connection is OK.", MessageType.SUCCESS)
         else:
             raise UserException("Test connection failed.")
 
