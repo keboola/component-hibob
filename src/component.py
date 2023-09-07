@@ -154,8 +154,7 @@ class Component(ComponentBase):
         for column in columns:
             if column not in self.state[table_name]:
                 self.state[table_name].append(column)
-                logging.info(f"Adding new column {column} to statefile. It will be stored in the result "
-                             f"on the next run.")
+                logging.info(f"Adding new column {column} for table {table_name} to statefile.")
 
     @sync_action("testConnection")
     def test_connection(self):
