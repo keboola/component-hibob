@@ -1,1 +1,1 @@
-HiBob Extractor
+HiBob is an HR management platform that provides a wide range of features supporting talent management including onboarding administration, task management, payroll reporting, time tracking, and manager dashboard for tracking employee performance.
