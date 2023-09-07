@@ -34,6 +34,33 @@ Configuration
 
 Aside from endpoints, you can select the `Human readable` parameter which makes the API return object's names instead of IDs.
 
+In Destination settings, you have an option to chose `Full Load` or `Incremental Load`.
+If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table.
+
+
+
+**Example configuration:**
+
+```
+{
+  "parameters": {
+    "endpoints": [
+      "employment_history",
+      "employee_lifecycle",
+      "employee_work_history"
+    ],
+    "destination": {
+      "load_type": "full_load"
+    },
+    "authorization": {
+      "service_user_id": "SERVICE-XXXX",
+      "#service_user_token": "xxx...xxx"
+    },
+    "human_readable": true
+  }
+}
+```
+
 Output
 ======
 
