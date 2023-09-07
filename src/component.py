@@ -44,11 +44,7 @@ class Component(ComponentBase):
         service_user_id = self._configuration.authorization.service_user_id
         service_user_token = self._configuration.authorization.pswd_service_user_token
 
-        load_type = self._configuration.destination.load_type
-        if load_type == "incremental_load":
-            self.incremental = True
-        else:
-            self.incremental = False
+        self.incremental = self._configuration.destination.load_type == "incremental_load"
 
         human_readable = self._configuration.human_readable
 
@@ -58,7 +54,8 @@ class Component(ComponentBase):
 
         for endpoint in self._configuration.endpoints:
             if endpoint in SUPPORTED_ENDPOINTS:
-                getattr(self, "get_"+endpoint)(employee_ids)
+                client_function = getattr(self.client, f"get_{endpoint}")
+                self.retrieve_data(endpoint, employee_ids, client_function)
             else:
                 raise UserException(f"Unsupported endpoint: {endpoint}.")
 
@@ -67,66 +64,40 @@ class Component(ComponentBase):
     def get_employees(self, human_readable: bool) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
         a list of employee_ids."""
-        table = self.create_out_table_definition('employees.csv', incremental=self.incremental, primary_key=['id'])
+        table_name = "employees"
+        columns = self.state.get(table_name, [])
+        table = self.create_out_table_definition(f'{table_name}.csv', incremental=self.incremental,
+                                                 primary_key=['id'])
         employee_ids = []
-        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
-            wr.writeheader()
+        with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee in self.client.get_employees(human_readable=human_readable):
                 row = self.flatten_dictionary(employee)
-
-                self.add_col_to_state("employees", row)
-
+                self.add_col_to_state(table_name, row)
                 wr.writerow(row)
 
                 if employee.get("id"):
                     employee_ids.append(employee.get("id"))
 
+            wr.writeheader()
+
         self.write_manifest(table)
         return employee_ids
 
-    def get_employment_history(self, employee_ids):
-        logging.info("Retrieving employment history.")
+    def retrieve_data(self, table_name, employee_ids, client_function) -> None:
+        logging.info(f"Retrieving {table_name}.")
 
-        table = self.create_out_table_definition('employment_history.csv', incremental=self.incremental,
+        columns = self.state.get(table_name, [])
+        table = self.create_out_table_definition(f'{table_name}.csv', incremental=self.incremental,
                                                  primary_key=['id'])
-        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
-            wr.writeheader()
+        with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee_id in employee_ids:
-                result = self.client.get_employment_history(employee_id)
+                result = client_function(employee_id)
                 for record in result:
                     row = self.flatten_dictionary(record)
-                    self.add_col_to_state("employment_history", row)
+                    self.add_col_to_state(table_name, row)
                     wr.writerow(row)
-        self.write_manifest(table)
-
-    def get_employee_lifecycle(self, employee_ids):
-        logging.info("Retrieving employee lifecycle.")
-
-        table = self.create_out_table_definition('employee_lifecycle.csv', incremental=self.incremental,
-                                                 primary_key=['id'])
-        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
             wr.writeheader()
-            for employee_id in employee_ids:
-                result = self.client.get_employee_lifecycle(employee_id)
-                for record in result:
-                    row = self.flatten_dictionary(record)
-                    self.add_col_to_state("employee_lifecycle", row)
-                    wr.writerow(row)
-        self.write_manifest(table)
 
-    def get_employee_work_history(self, employee_ids):
-        logging.info("Retrieving employee work history.")
-
-        table = self.create_out_table_definition('employee_work_history.csv', incremental=self.incremental,
-                                                 primary_key=['id'])
-        with ElasticDictWriter(table.full_path, fieldnames=[]) as wr:
-            wr.writeheader()
-            for employee_id in employee_ids:
-                result = self.client.get_employee_work_history(employee_id)
-                for record in result:
-                    row = self.flatten_dictionary(record)
-                    self.add_col_to_state("employee_work_history", row)
-                    wr.writerow(row)
         self.write_manifest(table)
 
     def _init_configuration(self) -> None:
@@ -182,7 +153,7 @@ class Component(ComponentBase):
         for column in columns:
             if column not in self.state[table_name]:
                 self.state[table_name].append(column)
-                logging.info(f"Adding new column {column} to statefile.")
+                logging.info(f"Adding new column {column} for table {table_name} to statefile.")
 
     @sync_action("testConnection")
     def test_connection(self):

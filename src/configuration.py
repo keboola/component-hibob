@@ -52,12 +52,12 @@ class Authorization(ConfigurationBase):
 
 @dataclass
 class Destination(ConfigurationBase):
-    load_type: list[str]
+    load_type: List[str]
 
 
 @dataclass
 class Configuration(ConfigurationBase):
     authorization: Authorization
-    endpoints: list[str]
+    endpoints: List[str]
     destination: Destination
     human_readable: bool = False

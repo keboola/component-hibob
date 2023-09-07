@@ -1,5 +1,4 @@
 keboola.component
-keboola.utils
 keboola.http-client
 keboola.csvwriter
 mock
