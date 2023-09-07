@@ -40,7 +40,7 @@ Output
 If all endpoints are selected, the component outputs four tables: `employees`, `employee_work_history`, `employment_history`, `employee_lifecycle`.
 
 Development
------------
+======
 
 If required, change local data folder (the `CUSTOM_FOLDER` placeholder) path to
 your custom path in the `docker-compose.yml` file:
