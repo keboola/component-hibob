@@ -66,14 +66,13 @@ class Component(ComponentBase):
         a list of employee_ids."""
         table_name = "employees"
         columns = self.state.get(table_name, [])
-        table = self.create_out_table_definition(f'{table_name}.csv', incremental=self.incremental, primary_key=['id'])
+        table = self.create_out_table_definition(f'{table_name}.csv', incremental=self.incremental,
+                                                 primary_key=['id'])
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee in self.client.get_employees(human_readable=human_readable):
                 row = self.flatten_dictionary(employee)
-
                 self.add_col_to_state(table_name, row)
-
                 wr.writerow(row)
 
                 if employee.get("id"):
