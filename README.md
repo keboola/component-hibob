@@ -15,7 +15,7 @@ Prerequisites
 - Service User Token
 
 You can find out how to set up the service user in [HiBoB Documentation](https://apidocs.hibob.com/docs/api-service-users).
-You can also use TEST CONNECTION button to validate your credentials.
+You can also use `TEST CONNECTION` button to validate your credentials.
 
 
 Supported endpoints
