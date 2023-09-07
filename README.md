@@ -21,7 +21,7 @@ You can also use TEST CONNECTION button to validate your credentials.
 Supported endpoints
 ===================
 
-- [Employees](https://apidocs.hibob.com/reference/post_people-search) (this is the default endpoint that gets downloaded each run)
+- [Employees](https://apidocs.hibob.com/reference/post_people-search) This is the default endpoint that gets downloaded each run.
 - [Employment History](https://apidocs.hibob.com/reference/get_people-id-employment)
 - [Employee Lifecycle](https://apidocs.hibob.com/reference/get_people-id-lifecycle)
 - [Employee Work History](https://apidocs.hibob.com/reference/get_people-id-work)
