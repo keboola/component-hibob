@@ -51,7 +51,6 @@ class HiBobClient(HttpClient):
 
         try:
             r = self.post("people/search", json=params)
-            r.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise HiBobException(f"Cannot fetch employees, reason: {e}")
 
