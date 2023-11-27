@@ -97,6 +97,7 @@ class Component(ComponentBase):
                 result = client_function(employee_id)
                 for record in result:
                     row = self.flatten_dictionary(record)
+                    row["employee_id"] = employee_id
                     self.add_col_to_state(table_name, row)
                     wr.writerow(row)
             wr.writeheader()
