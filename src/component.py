@@ -9,7 +9,7 @@ from keboola.component.base import ComponentBase, sync_action
 from keboola.component.exceptions import UserException
 
 from configuration import Configuration
-from client.client import HiBobClient
+from client.client import HiBobClient, HiBobException
 
 
 SUPPORTED_ENDPOINTS = ['employment_history', 'employee_lifecycle', 'employee_work_history']
@@ -70,13 +70,16 @@ class Component(ComponentBase):
                                                  primary_key=['id'])
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
-            for employee in self.client.get_employees(human_readable=human_readable):
-                row = self.flatten_dictionary(employee)
-                self.add_col_to_state(table_name, row)
-                wr.writerow(row)
+            try:
+                for employee in self.client.get_employees(human_readable=human_readable):
+                    row = self.flatten_dictionary(employee)
+                    self.add_col_to_state(table_name, row)
+                    wr.writerow(row)
 
-                if employee.get("id"):
-                    employee_ids.append(employee.get("id"))
+                    if employee.get("id"):
+                        employee_ids.append(employee.get("id"))
+            except HiBobException as e:
+                raise UserException(e)
 
             wr.writeheader()
 
@@ -94,6 +97,7 @@ class Component(ComponentBase):
                 result = client_function(employee_id)
                 for record in result:
                     row = self.flatten_dictionary(record)
+                    row["employee_id"] = employee_id
                     self.add_col_to_state(table_name, row)
                     wr.writerow(row)
             wr.writeheader()

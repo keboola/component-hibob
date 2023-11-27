@@ -49,7 +49,10 @@ class HiBobClient(HttpClient):
             params["humanReadable"] = "REPLACE"
             logging.info("Component will fetch only human readable values for employees table.")
 
-        r = self.post("people/search", json=params)
+        try:
+            r = self.post("people/search", json=params)
+        except requests.exceptions.HTTPError as e:
+            raise HiBobException(f"Cannot fetch employees, reason: {e}")
 
         employees = r.get("employees")
 
@@ -59,8 +62,7 @@ class HiBobClient(HttpClient):
 
     def get_employment_history(self, employee_id: str) -> dict:
         endpoint = f"people/{employee_id}/employment"
-        r = self._get(endpoint).get("values")
-        return r
+        return self._get(endpoint).get("values")
 
     def get_employee_lifecycle(self, employee_id: str) -> dict:
         endpoint = f"people/{employee_id}/lifecycle"
