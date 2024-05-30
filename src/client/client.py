@@ -38,11 +38,11 @@ class HiBobClient(HttpClient):
         except requests.HTTPError:
             return False
 
-    def get_employees(self, human_readable: bool = False):
+    def get_employees(self, human_readable: bool = False, show_inactive: bool = False):
         logging.info("Retrieving employees.")
 
         params = {
-            "showInactive": True
+            "showInactive": show_inactive
         }
 
         if human_readable:

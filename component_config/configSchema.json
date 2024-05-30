@@ -25,17 +25,18 @@
           "propertyOrder": 2
         },
         "test_connection": {
-      "type": "button",
-      "format": "sync-action",
-      "propertyOrder": 3,
-      "options": {
-        "async": {
-          "label": "TEST CONNECTION",
-          "action": "testConnection"
+          "type": "button",
+          "format": "sync-action",
+          "propertyOrder": 3,
+          "options": {
+            "async": {
+              "label": "TEST CONNECTION",
+              "action": "testConnection"
+            }
+          }
         }
       }
-    }
-    }},
+    },
     "endpoints": {
       "type": "array",
       "title": "Endpoints",
@@ -56,6 +57,12 @@
       "title": "Human readable",
       "description": "Select this option if you want to fetch human readable values only. This option only affects employees table.",
       "propertyOrder": 3
+    },
+    "show_inactive": {
+      "type": "boolean",
+      "title": "Show inactive",
+      "description": "Defines whether response should include inactive employees.",
+      "propertyOrder": 4
     },
     "destination": {
       "type": "object",
@@ -79,7 +86,7 @@
           "description": "If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table."
         }
       },
-      "propertyOrder": 4
+      "propertyOrder": 5
     }
   }
 }

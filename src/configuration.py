@@ -61,3 +61,4 @@ class Configuration(ConfigurationBase):
     endpoints: List[str]
     destination: Destination
     human_readable: bool = False
+    show_inactive: bool = False
