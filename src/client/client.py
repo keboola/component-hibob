@@ -38,18 +38,22 @@ class HiBobClient(HttpClient):
         except requests.HTTPError:
             return False
 
-    def get_employees(self, human_readable: bool = False):
+    def get_employees(self, human_readable: bool = False, custom_fields: list = None):
         logging.info("Retrieving employees.")
 
         params = {
             "showInactive": True
         }
 
+        if custom_fields:
+            params["fields"] = custom_fields
+
         if human_readable:
             params["humanReadable"] = "REPLACE"
             logging.info("Component will fetch only human readable values for employees table.")
 
         try:
+            logging.info(params)
             r = self.post("people/search", json=params)
         except requests.exceptions.HTTPError as e:
             raise HiBobException(f"Cannot fetch employees, reason: {e}")

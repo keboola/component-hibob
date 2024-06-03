@@ -61,3 +61,4 @@ class Configuration(ConfigurationBase):
     endpoints: List[str]
     destination: Destination
     human_readable: bool = False
+    custom_fields: List[str] = None
