@@ -37,6 +37,8 @@ Aside from endpoints, you can select the `Human readable` parameter which makes 
 In Destination settings, you have an option to chose `Full Load` or `Incremental Load`.
 If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table.
 
+For Employees endpoint, you can specify the `custom_fields` parameter. This parameter takes a list of custom fields that you want to include in the output. More information about custom fields can be found in the [HiBob API documentation](https://apidocs.hibob.com/reference/post_people-search).
+
 
 
 **Example configuration:**

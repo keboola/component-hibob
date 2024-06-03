@@ -48,9 +48,11 @@ class Component(ComponentBase):
 
         human_readable = self._configuration.human_readable
 
+        custom_fields = self._configuration.custom_fields
+
         self.client = HiBobClient(service_user_id, service_user_token)
 
-        employee_ids = self.get_employees(human_readable)
+        employee_ids = self.get_employees(human_readable, custom_fields)
 
         for endpoint in self._configuration.endpoints:
             if endpoint in SUPPORTED_ENDPOINTS:
@@ -61,7 +63,7 @@ class Component(ComponentBase):
 
         self.write_state_file(self.state)
 
-    def get_employees(self, human_readable: bool) -> list:
+    def get_employees(self, human_readable: bool, custom_fields: list) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
         a list of employee_ids."""
         table_name = "employees"
@@ -71,7 +73,7 @@ class Component(ComponentBase):
         employee_ids = []
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             try:
-                for employee in self.client.get_employees(human_readable=human_readable):
+                for employee in self.client.get_employees(human_readable=human_readable, custom_fields=custom_fields):
                     row = self.flatten_dictionary(employee)
                     self.add_col_to_state(table_name, row)
                     wr.writerow(row)
