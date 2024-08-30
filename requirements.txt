@@ -4,3 +4,4 @@ keboola.csvwriter
 mock
 freezegun
 dataconf
+ratelimit==2.2.1
