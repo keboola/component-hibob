@@ -106,11 +106,9 @@ class Component(ComponentBase):
 
                 logging.info(f"for employee {employee_id} returned: {result}")
                 for record in result:
-                    logging.info(f"Processing record: {record}")
                     row = self.flatten_dictionary(record)
-                    logging.info(f"Flattened record: {row}")
                     row["employee_id"] = employee_id
-                    logging.info(f"Adding employee_id to record: {row}")
+                    logging.info(f"Processed record for table {table.full_path} record: {row}")
                     self.add_col_to_state(table_name, row)
                     wr.writerow(row)
             wr.writeheader()
