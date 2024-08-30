@@ -99,15 +99,18 @@ class Component(ComponentBase):
                                                  primary_key=['id'])
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee_id in employee_ids:
-                logging.info(f"Retrieving data for {str(i)} employee {employee_id}.")
+                logging.info(f"Retrieving {table_name} data for {str(i)}. employee {employee_id}.")
                 result = client_function(employee_id)
 
                 i += 1
 
                 logging.info(f"for employee {employee_id} returned: {result}")
                 for record in result:
+                    logging.info(f"Processing record: {record}")
                     row = self.flatten_dictionary(record)
+                    logging.info(f"Flattened record: {row}")
                     row["employee_id"] = employee_id
+                    logging.info(f"Adding employee_id to record: {row}")
                     self.add_col_to_state(table_name, row)
                     wr.writerow(row)
             wr.writeheader()
