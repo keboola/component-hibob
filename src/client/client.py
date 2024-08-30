@@ -3,6 +3,7 @@ import logging
 
 import requests.exceptions
 from keboola.http_client import HttpClient
+from ratelimit import limits, sleep_and_retry
 
 
 class HiBobException(Exception):
@@ -76,6 +77,8 @@ class HiBobClient(HttpClient):
         endpoint = f"people/{employee_id}/work"
         return self._get(endpoint).get("values")
 
+    @sleep_and_retry
+    @limits(calls=100, period=60)
     def _get(self, endpoint) -> dict:
         try:
             r = self.get(endpoint)
