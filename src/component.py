@@ -93,7 +93,7 @@ class Component(ComponentBase):
 
         columns = self.state.get(table_name, [])
         table = self.create_out_table_definition(f'{table_name}.csv', incremental=self.incremental,
-                                                 primary_key=['id'])
+                                                 primary_key=['id', 'employee_id'])
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee_id in employee_ids:
                 result = client_function(employee_id)
