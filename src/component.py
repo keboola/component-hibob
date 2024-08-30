@@ -91,6 +91,7 @@ class Component(ComponentBase):
         return employee_ids
 
     def retrieve_data(self, table_name, employee_ids, client_function) -> None:
+        i = 0
         logging.info(f"Retrieving {table_name}.")
 
         columns = self.state.get(table_name, [])
@@ -98,7 +99,10 @@ class Component(ComponentBase):
                                                  primary_key=['id'])
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee_id in employee_ids:
+                logging.info(f"Retrieving data for {str(i)} employee {employee_id}.")
                 result = client_function(employee_id)
+
+                i += 1
 
                 logging.info(f"for employee {employee_id} returned: {result}")
                 for record in result:
