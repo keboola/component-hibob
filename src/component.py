@@ -54,6 +54,8 @@ class Component(ComponentBase):
 
         employee_ids = self.get_employees(human_readable, custom_fields)
 
+        logging.info(f"Returned employees ids: {str(len(employee_ids))}")
+
         for endpoint in self._configuration.endpoints:
             if endpoint in SUPPORTED_ENDPOINTS:
                 client_function = getattr(self.client, f"get_{endpoint}")
@@ -97,6 +99,8 @@ class Component(ComponentBase):
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
             for employee_id in employee_ids:
                 result = client_function(employee_id)
+
+                logging.info(f"for employee {employee_id} returned: {result}")
                 for record in result:
                     row = self.flatten_dictionary(record)
                     row["employee_id"] = employee_id
