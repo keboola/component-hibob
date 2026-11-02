@@ -1,7 +1,7 @@
 import dataclasses
 import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 import dataconf
 
 
@@ -52,7 +52,11 @@ class Authorization(ConfigurationBase):
 
 @dataclass
 class Destination(ConfigurationBase):
-    load_type: List[str]
+    # Kept permissive on purpose. The UI schema has always stored this as a string, but a
+    # hand-crafted configuration may hold a single-item list. Both are accepted here and
+    # normalised in Component._resolve_incremental, so no existing configuration can fail
+    # to load. The default keeps configurations that predate this field loadable.
+    load_type: Union[str, List[str]] = "full_load"
 
 
 @dataclass
