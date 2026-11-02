@@ -115,6 +115,7 @@ class HiBobClient(HttpClient):
         for batch_number, batch in enumerate(self._batched(employee_ids, MAX_EMPLOYEE_IDS_PER_REQUEST), start=1):
             logging.info(f"Retrieving {endpoint_name} for employee batch {batch_number} ({len(batch)} employees).")
             cursor = None
+            seen_cursors = set()
 
             while True:
                 params = {
@@ -139,6 +140,16 @@ class HiBobClient(HttpClient):
                 cursor = (response.get("response_metadata") or {}).get("next_cursor")
                 if not cursor:
                     break
+
+                # A cursor that repeats would page forever and keep the job running until it
+                # times out, so the batch is stopped instead.
+                if cursor in seen_cursors:
+                    logging.warning(
+                        f"HiBob returned a repeating page cursor for {endpoint_name}. "
+                        f"Stopping batch {batch_number} to avoid an endless loop."
+                    )
+                    break
+                seen_cursors.add(cursor)
 
     def get_history_per_employee(self, endpoint_name: str, employee_id: str):
         """

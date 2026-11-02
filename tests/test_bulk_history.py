@@ -104,6 +104,19 @@ class TestBulkPagination(unittest.TestCase):
         self.assertEqual("1", get.call_args_list[1].kwargs["params"]["employeeIds"])
         self.assertEqual([("1", {"id": "a"}), ("1", {"id": "b"})], records)
 
+    def test_repeating_cursor_does_not_loop_forever(self):
+        """A cursor that never advances must stop the batch, not hang the job."""
+        client = _client()
+        looping = _bulk_page([{"employeeId": "1", "values": [{"id": "a"}]}], next_cursor="SAME")
+
+        with mock.patch.object(HiBobClient, "get", return_value=looping) as get:
+            with self.assertLogs(level="WARNING") as logs:
+                records = list(client.get_history_in_bulk("employment_history", ["1"]))
+
+        self.assertEqual(2, get.call_count)
+        self.assertEqual(2, len(records))
+        self.assertIn("repeating page cursor", "".join(logs.output))
+
     def test_missing_response_metadata_ends_pagination(self):
         client = _client()
         with mock.patch.object(HiBobClient, "get", return_value={"results": []}):
