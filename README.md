@@ -22,9 +22,20 @@ Supported endpoints
 ===================
 
 - [Employees](https://apidocs.hibob.com/reference/post_people-search) This is the default endpoint that gets downloaded each run.
-- [Employment History](https://apidocs.hibob.com/reference/get_people-id-employment)
-- [Employee Lifecycle](https://apidocs.hibob.com/reference/get_people-id-lifecycle)
-- [Employee Work History](https://apidocs.hibob.com/reference/get_people-id-work)
+- [Employment History](https://apidocs.hibob.com/reference/get_bulk-people-employment)
+- [Employee Lifecycle](https://apidocs.hibob.com/reference/get_bulk-people-lifecycle)
+- [Employee Work History](https://apidocs.hibob.com/reference/get_bulk-people-work)
+
+The three history endpoints are read through the HiBob bulk API. The component sends the
+employee ids in batches of up to 200 and reads each batch page by page, so a run needs about
+25 requests instead of one request per employee. The output tables, their columns and their
+primary keys are the same as before.
+
+The bulk endpoints need the same service user permissions as the per-employee endpoints. If
+they are not available for your service user, the component logs a warning and falls back to
+the per-employee endpoints, which give the same output but take considerably longer. If your
+service user has no permission for some employees, HiBob reports those employees in the
+response instead of failing the request, and the component logs a warning naming them.
 
 If you need more endpoints, please submit your request to
 [ideas.keboola.com](https://ideas.keboola.com/)
@@ -36,6 +47,11 @@ Aside from endpoints, you can select the `Human readable` parameter which makes 
 
 In Destination settings, you have an option to chose `Full Load` or `Incremental Load`.
 If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table.
+
+Note: before version 1.0.13 the `Incremental Load` option had no effect and every table was
+imported as a full load. Configurations set to `Incremental Load` now really upsert. Rows
+that are deleted in HiBob stay in Storage, because an upsert does not remove them. Switch the
+configuration to `Full Load` if you need deleted rows to disappear from the table.
 
 For Employees endpoint, you can specify the `custom_fields` parameter. This parameter takes a list of custom fields that you want to include in the output. More information about custom fields can be found in the [HiBob API documentation](https://apidocs.hibob.com/reference/post_people-search).
 
