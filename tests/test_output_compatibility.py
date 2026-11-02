@@ -51,8 +51,13 @@ class TestOutputCompatibility(unittest.TestCase):
                 if not bulk_available:
                     raise _forbidden()
                 ids = params["employeeIds"].split(",")
+                # The bulk specification nests the entries inside a
+                # {"values": [...], "restricted_columns": ...} wrapper.
                 return {
-                    "results": [{"employeeId": i, "values": HISTORY[i]} for i in ids],
+                    "results": [
+                        {"employeeId": i, "values": [{"values": HISTORY[i], "restricted_columns": {}}]}
+                        for i in ids
+                    ],
                     "response_metadata": {"next_cursor": None},
                 }
             if not bulk_available:

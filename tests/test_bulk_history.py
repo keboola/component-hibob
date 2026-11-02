@@ -5,6 +5,7 @@ The important property is that the bulk path produces exactly the same
 output tables keep the same rows, the same employee_id column and the same
 [id, employee_id] primary key.
 """
+import logging
 import unittest
 from unittest import mock
 
@@ -180,6 +181,41 @@ class TestBulkResponseParsing(unittest.TestCase):
 
         self.assertEqual([("8", {"id": "b"})], records)
         self.assertIn("MISSING_PERMISSION", "".join(logs.output))
+
+
+class TestRestrictedColumns(unittest.TestCase):
+
+    def test_restricted_columns_are_reported_once(self):
+        """Field-level permissions silently drop columns, so the run must say so."""
+        page = _bulk_page([
+            {"employeeId": "1", "values": [{"values": [{"id": "a"}], "restricted_columns": {"salary": True}}]},
+            {"employeeId": "2", "values": [{"values": [{"id": "b"}], "restricted_columns": {"salary": True}}]},
+        ])
+        client = _client()
+        with mock.patch.object(HiBobClient, "get", return_value=page):
+            with self.assertLogs(level="WARNING") as logs:
+                records = list(client.get_history_in_bulk("employment_history", ["1", "2"]))
+
+        self.assertEqual([("1", {"id": "a"}), ("2", {"id": "b"})], records)
+        warnings = [line for line in logs.output if "partial column permissions" in line]
+        self.assertEqual(1, len(warnings), "the warning must be logged once, not per employee")
+
+    def test_no_warning_when_no_columns_are_restricted(self):
+        page = _bulk_page([{"employeeId": "1", "values": [{"values": [{"id": "a"}], "restricted_columns": {}}]}])
+        client = _client()
+        with mock.patch.object(HiBobClient, "get", return_value=page):
+            with mock.patch.object(logging, "warning") as warning:
+                list(client.get_history_in_bulk("employment_history", ["1"]))
+        warning.assert_not_called()
+
+
+class TestRateLimits(unittest.TestCase):
+
+    def test_documented_hibob_rate_limits_are_used(self):
+        """Bulk is documented at 100/min, the per-employee history endpoints at 50/min."""
+        from client.client import BULK_CALLS_PER_MINUTE, PER_EMPLOYEE_CALLS_PER_MINUTE
+        self.assertEqual(100, BULK_CALLS_PER_MINUTE)
+        self.assertEqual(50, PER_EMPLOYEE_CALLS_PER_MINUTE)
 
 
 class TestBulkAvailability(unittest.TestCase):

@@ -16,6 +16,10 @@ MAX_PAGE_SIZE = 200
 # of the per-employee history endpoints.
 BULK_CALLS_PER_MINUTE = 100
 
+# HiBob rate limits the per-employee history endpoints to 50 calls per minute. The client used
+# to send 100 and rely on the 429 retry. This path is now only the fallback.
+PER_EMPLOYEE_CALLS_PER_MINUTE = 50
+
 # Maps the component endpoint names onto the HiBob bulk paths and the per-employee paths.
 # The per-employee path is the fallback used when the bulk endpoint is not available.
 HISTORY_ENDPOINTS = {
@@ -111,6 +115,7 @@ class HiBobClient(HttpClient):
             HiBobException: Any other failure while reading the endpoint.
         """
         bulk_path = HISTORY_ENDPOINTS[endpoint_name]["bulk"]
+        restricted_columns_reported = False
 
         for batch_number, batch in enumerate(self._batched(employee_ids, MAX_EMPLOYEE_IDS_PER_REQUEST), start=1):
             logging.info(f"Retrieving {endpoint_name} for employee batch {batch_number} ({len(batch)} employees).")
@@ -134,7 +139,15 @@ class HiBobClient(HttpClient):
                     if not employee_id:
                         logging.warning(f"Skipping a {endpoint_name} result without an employeeId.")
                         continue
-                    for record in self._iterate_values(result.get("values")):
+                    values = result.get("values")
+                    if not restricted_columns_reported and self._has_restricted_columns(values):
+                        restricted_columns_reported = True
+                        logging.warning(
+                            f"HiBob removed some columns from the {endpoint_name} response because "
+                            f"the service user has only partial column permissions. The table will "
+                            f"be missing those columns."
+                        )
+                    for record in self._iterate_values(values):
                         yield employee_id, record
 
                 cursor = (response.get("response_metadata") or {}).get("next_cursor")
@@ -174,11 +187,19 @@ class HiBobClient(HttpClient):
         """
         Yield the history entries held in a `values` list.
 
-        The per-employee endpoints return `values` as a flat list of entries. The bulk
-        specification describes the same field ambiguously, so a nested
-        `{"values": [...], "restricted_columns": ...}` wrapper is unwrapped here as well.
-        A wrapper is only recognised when the object holds nothing but those two keys, so a
-        real history entry is never mistaken for one.
+        The two HiBob paths nest this field differently, and both shapes are handled here.
+
+        - Bulk: `results[].values[]` is a list of
+          `{"values": [entry, ...], "restricted_columns": ...}` wrappers. The specification
+          requires this nesting, so the unwrapping below is the documented happy path for the
+          bulk endpoints, not defensive code. Removing it would yield wrapper objects instead
+          of history entries and every history table would come out empty.
+        - Per-employee: `values` is already a flat list of entries.
+
+        A wrapper is only recognised when the object holds nothing but `values` and
+        `restricted_columns`, so a real history entry is never mistaken for one.
+        `restricted_columns` is optional; HiBob sends it only when field-level permissions
+        removed columns from the response.
         """
         wrapper_keys = {"values", "restricted_columns"}
 
@@ -188,6 +209,14 @@ class HiBobClient(HttpClient):
                     yield record
             else:
                 yield value
+
+    @staticmethod
+    def _has_restricted_columns(values) -> bool:
+        """Return True if HiBob reported that field-level permissions filtered the columns."""
+        for value in values or []:
+            if isinstance(value, dict) and value.get("restricted_columns"):
+                return True
+        return False
 
     @staticmethod
     def _log_bulk_errors(endpoint_name: str, errors) -> None:
@@ -218,7 +247,7 @@ class HiBobClient(HttpClient):
             raise HiBobException(f"Failed to fetch endpoint {endpoint}, {e}") from e
 
     @sleep_and_retry
-    @limits(calls=100, period=60)
+    @limits(calls=PER_EMPLOYEE_CALLS_PER_MINUTE, period=60)
     def _get(self, endpoint) -> dict:
         try:
             r = self.get(endpoint)
