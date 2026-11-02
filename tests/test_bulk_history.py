@@ -31,6 +31,14 @@ def _bulk_page(results, next_cursor=None, errors=None):
     return page
 
 
+def _echo_page(next_cursor=None):
+    """Mimic HiBob: one result object per requested employee, with no history entries."""
+    def _responder(_endpoint, params=None, **_kwargs):
+        ids = params["employeeIds"].split(",")
+        return _bulk_page([{"employeeId": i, "values": []} for i in ids], next_cursor=next_cursor)
+    return _responder
+
+
 def _http_error(status_code):
     response = requests.Response()
     response.status_code = status_code
@@ -53,7 +61,7 @@ class TestBulkBatching(unittest.TestCase):
         employee_ids = [str(i) for i in range(450)]
         client = _client()
 
-        with mock.patch.object(HiBobClient, "get", return_value=_bulk_page([])) as get:
+        with mock.patch.object(HiBobClient, "get", side_effect=_echo_page()) as get:
             list(client.get_history_in_bulk("employment_history", employee_ids))
 
         self.assertEqual(3, get.call_count)
@@ -64,7 +72,7 @@ class TestBulkBatching(unittest.TestCase):
 
     def test_request_targets_the_bulk_path_with_the_max_page_size(self):
         client = _client()
-        with mock.patch.object(HiBobClient, "get", return_value=_bulk_page([])) as get:
+        with mock.patch.object(HiBobClient, "get", side_effect=_echo_page()) as get:
             list(client.get_history_in_bulk("employee_work_history", ["1"]))
 
         self.assertEqual("bulk/people/work", get.call_args.args[0])
@@ -72,7 +80,7 @@ class TestBulkBatching(unittest.TestCase):
 
     def test_no_cursor_is_sent_on_the_first_request(self):
         client = _client()
-        with mock.patch.object(HiBobClient, "get", return_value=_bulk_page([])) as get:
+        with mock.patch.object(HiBobClient, "get", side_effect=_echo_page()) as get:
             list(client.get_history_in_bulk("employee_lifecycle", ["1"]))
 
         self.assertNotIn("cursor", get.call_args.kwargs["params"])
@@ -109,7 +117,8 @@ class TestBulkPagination(unittest.TestCase):
 
     def test_missing_response_metadata_ends_pagination(self):
         client = _client()
-        with mock.patch.object(HiBobClient, "get", return_value={"results": []}):
+        page = {"results": [{"employeeId": "1", "values": []}]}
+        with mock.patch.object(HiBobClient, "get", return_value=page):
             self.assertEqual([], list(client.get_history_in_bulk("employment_history", ["1"])))
 
 
@@ -133,6 +142,17 @@ class TestBulkResponseParsing(unittest.TestCase):
             records = list(client.get_history_in_bulk("employment_history", ["7"]))
 
         self.assertEqual([("7", {"id": "a"})], records)
+
+    def test_wrapper_with_an_extra_field_is_still_unwrapped(self):
+        """HiBob may add a field to the wrapper; the entries must still come out."""
+        page = _bulk_page([
+            {"employeeId": "7", "values": [
+                {"values": [{"id": "a"}], "restricted_columns": {}, "someNewField": 1}
+            ]}
+        ])
+        client = _client()
+        with mock.patch.object(HiBobClient, "get", return_value=page):
+            self.assertEqual([("7", {"id": "a"})], list(client.get_history_in_bulk("employment_history", ["7"])))
 
     def test_entry_with_its_own_values_field_is_not_unwrapped(self):
         """A real entry is never mistaken for the wrapper."""
@@ -190,6 +210,30 @@ class TestBulkResponseParsing(unittest.TestCase):
                 list(client.get_history_in_bulk("employment_history", ["7", "8"]))
 
         self.assertIn("999", str(raised.exception))
+
+
+class TestEmptyResponseGuard(unittest.TestCase):
+    """A response shape mismatch must not look like 'this tenant has no history'."""
+
+    def test_no_results_at_all_stops_the_run(self):
+        client = _client()
+        with mock.patch.object(HiBobClient, "get", return_value=_bulk_page([])):
+            with self.assertRaises(HiBobException) as raised:
+                list(client.get_history_in_bulk("employment_history", ["1", "2"]))
+
+        self.assertIn("no results at all", str(raised.exception))
+
+    def test_results_with_empty_history_are_accepted(self):
+        """A tenant where nobody has history is legitimate and must not fail."""
+        client = _client()
+        with mock.patch.object(HiBobClient, "get", side_effect=_echo_page()):
+            self.assertEqual([], list(client.get_history_in_bulk("employment_history", ["1", "2"])))
+
+    def test_no_employees_requested_does_not_fail(self):
+        client = _client()
+        with mock.patch.object(HiBobClient, "get") as get:
+            self.assertEqual([], list(client.get_history_in_bulk("employment_history", [])))
+        get.assert_not_called()
 
 
 class TestRestrictedColumns(unittest.TestCase):

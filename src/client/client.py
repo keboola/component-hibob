@@ -124,6 +124,7 @@ class HiBobClient(HttpClient):
 
         bulk_path = HISTORY_ENDPOINTS[endpoint_name]["bulk"]
         restricted_columns_reported = False
+        results_seen = 0
 
         for batch_number, batch in enumerate(self._batched(employee_ids, MAX_EMPLOYEE_IDS_PER_REQUEST), start=1):
             logging.info(f"Retrieving {endpoint_name} for employee batch {batch_number} ({len(batch)} employees).")
@@ -152,6 +153,7 @@ class HiBobClient(HttpClient):
                     seen_cursors.add(cursor)
 
                 for result in response.get("results") or []:
+                    results_seen += 1
                     employee_id = result.get("employeeId")
                     if not employee_id:
                         logging.warning(f"Skipping a {endpoint_name} result without an employeeId.")
@@ -176,6 +178,17 @@ class HiBobClient(HttpClient):
                 cursor = (response.get("response_metadata") or {}).get("next_cursor")
                 if not cursor:
                     break
+
+        # HiBob answers with one result object per requested employee, even for an employee with
+        # no history. Zero result objects therefore means the response did not have the expected
+        # shape, not that the tenant has no history. Writing nothing here would let a full load
+        # overwrite the table and delete every existing row, so the run stops instead.
+        if employee_ids and not results_seen:
+            raise HiBobException(
+                f"The HiBob bulk endpoint returned no results at all for {endpoint_name}, for "
+                f"{len(employee_ids)} requested employees. The run stopped, because writing an "
+                f"empty table would delete the existing rows from Storage."
+            )
 
     def get_history_per_employee(self, endpoint_name: str, employee_id: str):
         """
@@ -209,16 +222,14 @@ class HiBobClient(HttpClient):
           of history entries and every history table would come out empty.
         - Per-employee: `values` is already a flat list of entries.
 
-        A wrapper is only recognised when the object holds nothing but `values` and
-        `restricted_columns`, so a real history entry is never mistaken for one.
-        `restricted_columns` is optional; HiBob sends it only when field-level permissions
-        removed columns from the response.
+        A wrapper is recognised by a list in `values` together with no `id`. Every history entry
+        carries `id`, because it is half of the [id, employee_id] primary key, and a wrapper never
+        does. Matching on the absence of `id` rather than on an exact key set keeps this working
+        if HiBob adds a field to the wrapper, and still never mistakes an entry for a wrapper.
         """
-        wrapper_keys = {"values", "restricted_columns"}
-
         for value in values or []:
-            if isinstance(value, dict) and "values" in value and set(value).issubset(wrapper_keys):
-                for record in value.get("values") or []:
+            if isinstance(value, dict) and isinstance(value.get("values"), list) and "id" not in value:
+                for record in value["values"] or []:
                     yield record
             else:
                 yield value
