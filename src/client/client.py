@@ -125,6 +125,7 @@ class HiBobClient(HttpClient):
         bulk_path = HISTORY_ENDPOINTS[endpoint_name]["bulk"]
         restricted_columns_reported = False
         results_seen = 0
+        refused = 0
 
         for batch_number, batch in enumerate(self._batched(employee_ids, MAX_EMPLOYEE_IDS_PER_REQUEST), start=1):
             logging.info(f"Retrieving {endpoint_name} for employee batch {batch_number} ({len(batch)} employees).")
@@ -142,7 +143,7 @@ class HiBobClient(HttpClient):
 
                 response = self._get_bulk(bulk_path, params)
 
-                self._raise_on_bulk_errors(endpoint_name, response.get("errors"))
+                refused += self._log_bulk_errors(endpoint_name, response.get("errors"))
 
                 if cursor and cursor in seen_cursors:
                     raise HiBobException(
@@ -179,15 +180,24 @@ class HiBobClient(HttpClient):
                 if not cursor:
                     break
 
-        # HiBob answers with one result object per requested employee, even for an employee with
-        # no history. Zero result objects therefore means the response did not have the expected
-        # shape, not that the tenant has no history. Writing nothing here would let a full load
-        # overwrite the table and delete every existing row, so the run stops instead.
+        # Some employees missing is a partial table, which the warnings above make visible.
+        # No result objects at all is a different case: it empties the whole table, and a full
+        # load then deletes every existing row. That is not partial data, so the run stops.
         if employee_ids and not results_seen:
+            reason = (
+                f"HiBob reported {refused} error(s) and returned no employee at all." if refused
+                else "HiBob returned no result objects, so the response was not in the expected form."
+            )
             raise HiBobException(
-                f"The HiBob bulk endpoint returned no results at all for {endpoint_name}, for "
-                f"{len(employee_ids)} requested employees. The run stopped, because writing an "
-                f"empty table would delete the existing rows from Storage."
+                f"The HiBob bulk endpoint returned nothing at all for {endpoint_name}, for "
+                f"{len(employee_ids)} requested employees. {reason} The run stopped, because "
+                f"writing an empty table would delete every existing row from Storage."
+            )
+
+        if refused:
+            logging.warning(
+                f"{refused} employee(s) are missing from {endpoint_name} because HiBob did not "
+                f"return them. The table is incomplete."
             )
 
     def get_history_per_employee(self, endpoint_name: str, employee_id: str):
@@ -243,24 +253,27 @@ class HiBobClient(HttpClient):
         return False
 
     @staticmethod
-    def _raise_on_bulk_errors(endpoint_name: str, errors) -> None:
+    def _log_bulk_errors(endpoint_name: str, errors) -> int:
         """
-        Fail the run if HiBob refused to return some of the requested employees.
+        Report the employees HiBob refused and return how many it refused.
 
-        The per-employee endpoints answered a permission gap with an HTTP error, which stopped
-        the run. The bulk endpoints report those employees in `errors` and still answer 200.
-        Skipping them would let a full load overwrite the table without their history, which
-        silently deletes real rows from Storage. The run is therefore stopped, as before.
+        HiBob lists these employees in `errors` and still answers 200. In HiBob the employee
+        scope and the table permissions are set separately, so a service user can legitimately
+        read an employee in people/search and still not be allowed to read that employee's
+        history. The run therefore continues with the employees it did get, and the refused ones
+        are reported in the job log.
 
         The documented shape of this field is ambiguous, so it is reported as received.
         """
-        if errors:
-            raise HiBobException(
-                f"HiBob refused to return some employees for {endpoint_name}, so the table would "
-                f"be incomplete and a full load would delete their rows from Storage. Give the "
-                f"service user permission for every employee, or limit the employees it reads. "
-                f"HiBob reported: {errors}"
-            )
+        if not errors:
+            return 0
+
+        logging.warning(
+            f"HiBob did not return {len(errors)} employee(s) for {endpoint_name}. Those employees "
+            f"are missing from the table. Give the service user permission for them if they "
+            f"should be included. HiBob reported: {errors}"
+        )
+        return len(errors)
 
     @sleep_and_retry
     @limits(calls=BULK_CALLS_PER_MINUTE, period=60)

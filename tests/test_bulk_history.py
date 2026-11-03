@@ -178,22 +178,35 @@ class TestBulkResponseParsing(unittest.TestCase):
 
         self.assertEqual([("8", {"id": "b"})], records)
 
-    def test_refused_employees_stop_the_run(self):
-        """A full load would delete the refused employees' history, so the run must fail.
-
-        The per-employee endpoints answered a permission gap with an HTTP error and the run
-        stopped. The bulk endpoints answer 200 and list the employees under `errors`.
-        """
+    def test_refused_employees_are_reported_and_the_run_continues(self):
+        """In HiBob the employee scope and the table permissions are set separately, so a
+        partially readable tenant is legitimate. The run keeps the employees it did get."""
         page = _bulk_page(
             [{"employeeId": "8", "values": [{"id": "b"}]}],
             errors=[{"employeeId": {"error": "MISSING_PERMISSION", "message": "no permission"}}],
         )
         client = _client()
         with mock.patch.object(HiBobClient, "get", return_value=page):
-            with self.assertRaises(HiBobException) as raised:
-                list(client.get_history_in_bulk("employment_history", ["7", "8"]))
+            with self.assertLogs(level="WARNING") as logs:
+                records = list(client.get_history_in_bulk("employment_history", ["7", "8"]))
 
-        self.assertIn("MISSING_PERMISSION", str(raised.exception))
+        self.assertEqual([("8", {"id": "b"})], records)
+        output = "".join(logs.output)
+        self.assertIn("MISSING_PERMISSION", output)
+        self.assertIn("incomplete", output)
+
+    def test_all_employees_refused_stops_the_run(self):
+        """Nothing came back at all, so a full load would empty the whole table."""
+        page = _bulk_page(
+            [],
+            errors=[{"employeeId": {"error": "MISSING_PERMISSION", "message": "no permission"}}],
+        )
+        client = _client()
+        with mock.patch.object(HiBobClient, "get", return_value=page):
+            with self.assertRaises(HiBobException) as raised:
+                list(client.get_history_in_bulk("employment_history", ["7"]))
+
+        self.assertIn("returned no employee at all", str(raised.exception))
 
     def test_empty_errors_field_does_not_stop_the_run(self):
         page = _bulk_page([{"employeeId": "8", "values": [{"id": "b"}]}], errors=[])
@@ -221,7 +234,7 @@ class TestEmptyResponseGuard(unittest.TestCase):
             with self.assertRaises(HiBobException) as raised:
                 list(client.get_history_in_bulk("employment_history", ["1", "2"]))
 
-        self.assertIn("no results at all", str(raised.exception))
+        self.assertIn("nothing at all", str(raised.exception))
 
     def test_results_with_empty_history_are_accepted(self):
         """A tenant where nobody has history is legitimate and must not fail."""
