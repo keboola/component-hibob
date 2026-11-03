@@ -42,13 +42,10 @@ imported as a full load, even when the configuration asked for an incremental lo
 1.0.13 the option works.
 
 If you change nothing, a configuration set to `Incremental Load` starts to upsert on its next
-run. Two things follow from that:
+run. One thing follows from that:
 
 - Rows deleted in HiBob stay in Storage, because an upsert does not remove them. Use
   `Full Load` if you need deleted rows to disappear from the table.
-- If HiBob adds a field, or you add a custom field, the new column is not in the table that
-  is already in Storage. The component logs a warning. If the import fails, add the column to
-  the table in Storage, or run once with `Full Load` to rebuild the table.
 
 For Employees endpoint, you can specify the `custom_fields` parameter. This parameter takes a list of custom fields that you want to include in the output. More information about custom fields can be found in the [HiBob API documentation](https://apidocs.hibob.com/reference/post_people-search).
 
