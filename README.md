@@ -37,6 +37,16 @@ Aside from endpoints, you can select the `Human readable` parameter which makes 
 In Destination settings, you have an option to chose `Full Load` or `Incremental Load`.
 If Full load is used, the destination table will be overwritten every run. If incremental load is used, data will be upserted into the destination table.
 
+Note: before version 1.0.13 the `Incremental Load` option had no effect. Every table was
+imported as a full load, even when the configuration asked for an incremental load. From
+1.0.13 the option works.
+
+If you change nothing, a configuration set to `Incremental Load` starts to upsert on its next
+run. One thing follows from that:
+
+- Rows deleted in HiBob stay in Storage, because an upsert does not remove them. Use
+  `Full Load` if you need deleted rows to disappear from the table.
+
 For Employees endpoint, you can specify the `custom_fields` parameter. This parameter takes a list of custom fields that you want to include in the output. More information about custom fields can be found in the [HiBob API documentation](https://apidocs.hibob.com/reference/post_people-search).
 
 
