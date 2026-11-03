@@ -22,9 +22,24 @@ Supported endpoints
 ===================
 
 - [Employees](https://apidocs.hibob.com/reference/post_people-search) This is the default endpoint that gets downloaded each run.
-- [Employment History](https://apidocs.hibob.com/reference/get_people-id-employment)
-- [Employee Lifecycle](https://apidocs.hibob.com/reference/get_people-id-lifecycle)
-- [Employee Work History](https://apidocs.hibob.com/reference/get_people-id-work)
+- [Employment History](https://apidocs.hibob.com/reference/get_bulk-people-employment)
+- [Employee Lifecycle](https://apidocs.hibob.com/reference/get_bulk-people-lifecycle)
+- [Employee Work History](https://apidocs.hibob.com/reference/get_bulk-people-work)
+
+The three history endpoints are read through the HiBob bulk API. The component sends the
+employee ids in batches of up to 200 and reads each batch page by page, so a run needs about
+25 requests instead of one request per employee. The output tables, their columns and their
+primary keys are the same as before.
+
+The bulk endpoints need the same service user permissions as the per-employee endpoints. If
+they are not available for your service user, the component logs a warning and falls back to
+the per-employee endpoints, which give the same output but take considerably longer. If your
+service user has no permission for some employees, HiBob lists those employees in the response
+instead of failing the request. The component logs a warning naming them and keeps the
+employees it did get, so the job still succeeds with an incomplete table.
+
+The run only stops if HiBob returns no employee at all for an endpoint. That empties the whole
+table rather than part of it, and a full load would then delete every existing row.
 
 If you need more endpoints, please submit your request to
 [ideas.keboola.com](https://ideas.keboola.com/)

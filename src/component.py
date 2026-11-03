@@ -9,7 +9,7 @@ from keboola.component.base import ComponentBase, sync_action
 from keboola.component.exceptions import UserException
 
 from configuration import Configuration
-from client.client import HiBobClient, HiBobException
+from client.client import HiBobClient, HiBobException, HiBobBulkUnavailableException
 
 
 SUPPORTED_ENDPOINTS = ['employment_history', 'employee_lifecycle', 'employee_work_history']
@@ -56,8 +56,7 @@ class Component(ComponentBase):
 
         for endpoint in self._configuration.endpoints:
             if endpoint in SUPPORTED_ENDPOINTS:
-                client_function = getattr(self.client, f"get_{endpoint}")
-                self.retrieve_data(endpoint, employee_ids, client_function)
+                self.retrieve_data(endpoint, employee_ids)
             else:
                 raise UserException(f"Unsupported endpoint: {endpoint}.")
 
@@ -88,23 +87,60 @@ class Component(ComponentBase):
         self.write_manifest(table)
         return employee_ids
 
-    def retrieve_data(self, table_name, employee_ids, client_function) -> None:
+    def retrieve_data(self, table_name, employee_ids) -> None:
         logging.info(f"Retrieving {table_name}.")
 
         columns = self.state.get(table_name, [])
         table = self.create_out_table_definition(f'{table_name}.csv', incremental=self.incremental,
                                                  primary_key=['id', 'employee_id'])
         with ElasticDictWriter(table.full_path, fieldnames=columns, extrasaction="ignore") as wr:
-            for employee_id in employee_ids:
-                result = client_function(employee_id)
-                for record in result:
-                    row = self.flatten_dictionary(record)
-                    row["employee_id"] = employee_id
-                    self.add_col_to_state(table_name, row)
-                    wr.writerow(row)
+            for employee_id, record in self._iterate_history(table_name, employee_ids):
+                row = self.flatten_dictionary(record)
+                row["employee_id"] = employee_id
+                self.add_col_to_state(table_name, row)
+                wr.writerow(row)
             wr.writeheader()
 
         self.write_manifest(table)
+
+    def _iterate_history(self, table_name, employee_ids):
+        """
+        Yield (employee_id, record) pairs for a history endpoint.
+
+        The HiBob bulk endpoint is used first. It returns the same records as the per-employee
+        endpoints but needs about 25 requests instead of one request per employee.
+
+        If the bulk endpoint is not available for these credentials, the component falls back to
+        the per-employee endpoints and the output is unchanged. The fallback is only taken while
+        no record has been written yet, because restarting the endpoint after partial output
+        would write duplicate rows.
+        """
+        records_read = 0
+
+        try:
+            for employee_id, record in self.client.get_history_in_bulk(table_name, employee_ids):
+                records_read += 1
+                yield employee_id, record
+            return
+        except HiBobBulkUnavailableException as e:
+            if records_read:
+                raise UserException(
+                    f"Reading {table_name} from the HiBob bulk endpoint stopped after "
+                    f"{records_read} records: {e}"
+                ) from e
+            logging.warning(
+                f"{e} Falling back to the per-employee endpoints for {table_name}. "
+                f"The output is the same, but the run takes considerably longer."
+            )
+        except HiBobException as e:
+            raise UserException(e) from e
+
+        try:
+            for requested_id in employee_ids:
+                for employee_id, record in self.client.get_history_per_employee(table_name, requested_id):
+                    yield employee_id, record
+        except HiBobException as e:
+            raise UserException(e) from e
 
     def _init_configuration(self) -> None:
         self.validate_configuration_parameters(Configuration.get_dataclass_required_parameters())
