@@ -32,6 +32,7 @@ class Component(ComponentBase):
         self.client = None
         self._configuration: Configuration
         self.state = {}
+        self._column_drift_reported = set()
 
     def run(self):
         """
@@ -165,6 +166,10 @@ class Component(ComponentBase):
         return _flatten(nested_dict)
 
     def add_col_to_state(self, table_name: str, row: dict):
+        # A table that already has columns in the state file was written by an earlier run, so a
+        # column added now is a change of shape rather than the first run building the table.
+        had_columns = bool(self.state.get(table_name))
+
         if table_name not in self.state:
             self.state[table_name] = []
         columns = list(row.keys())
@@ -173,6 +178,27 @@ class Component(ComponentBase):
             if column not in self.state[table_name]:
                 self.state[table_name].append(column)
                 logging.info(f"Adding new column {column} for table {table_name} to statefile.")
+                if had_columns and self.incremental:
+                    self._warn_about_column_drift(table_name, column)
+
+    def _warn_about_column_drift(self, table_name: str, column: str) -> None:
+        """
+        Warn once per table when a new column appears while the load type is incremental.
+
+        A full load recreates the table, so a new HiBob field or a new custom field simply
+        appears. An incremental load writes into the table that is already in Storage, and that
+        table does not have the new column yet. The component cannot change the table itself.
+        """
+        if table_name in self._column_drift_reported:
+            return
+
+        self._column_drift_reported.add(table_name)
+        logging.warning(
+            f"The table {table_name} got a new column ({column}) and the load type is incremental. "
+            f"An incremental load writes into the table that is already in Storage, which does not "
+            f"have this column. If the import fails, add the column to the table in Storage, or "
+            f"run the configuration once with Full Load to rebuild the table."
+        )
 
     @sync_action("testConnection")
     def test_connection(self):
