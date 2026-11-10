@@ -44,7 +44,7 @@ class Component(ComponentBase):
         service_user_id = self._configuration.authorization.service_user_id
         service_user_token = self._configuration.authorization.pswd_service_user_token
 
-        self.incremental = self._configuration.destination.load_type == "incremental_load"
+        self.incremental = self._resolve_incremental(self._configuration.destination.load_type)
 
         human_readable = self._configuration.human_readable
 
@@ -62,6 +62,19 @@ class Component(ComponentBase):
                 raise UserException(f"Unsupported endpoint: {endpoint}.")
 
         self.write_state_file(self.state)
+
+    @staticmethod
+    def _resolve_incremental(load_type) -> bool:
+        """
+        Resolve the configured load type into the incremental flag.
+
+        The UI schema stores load_type as a string. A hand-crafted configuration may hold a
+        single-item list instead, so a list is unwrapped before the comparison. Anything that is
+        not "incremental_load" falls back to a full load, which is the documented default.
+        """
+        if isinstance(load_type, list):
+            load_type = load_type[0] if load_type else ""
+        return load_type == "incremental_load"
 
     def get_employees(self, human_readable: bool, custom_fields: list) -> list:
         """Saves employee data from https://apidocs.hibob.com/reference/get_people into csv and returns
