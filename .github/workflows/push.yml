@@ -46,7 +46,7 @@ jobs:
             branch_name=${{ github.ref_name }}
             echo "branch_name=$branch_name" | tee -a $GITHUB_OUTPUT
           else
-            raw=$(git branch -r --contains ${{ github.ref }})
+            raw=$(git branch -r --contains ${{ github.ref }} | grep -v -- '->')
             branch="$(echo ${raw//origin\//} | tr -d '\n')"
             echo "branch_name=$branch" | tee -a $GITHUB_OUTPUT
           fi
